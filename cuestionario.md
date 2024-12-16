@@ -19,7 +19,7 @@
 ## 3.2 Memoria real
 
 ### Escribe un programa en C o Python que simule la administración de memoria mediante particiones fijas.
-```
+```py
 class Partition:
     def __init__(self, size, id):
         self.size = size
@@ -141,10 +141,87 @@ Fin Para
 ## 3.4 Administración de memoria virtual
 
 ### Escribe un código que implemente el algoritmo de reemplazo de página "Least Recently Used" (LRU).
+```py
+def lru_page_replacement(pages, frame_count):
+    frames = []
+    page_faults = 0
 
+    for page in pages:
+        if page not in frames:
+            page_faults += 1
+
+            if len(frames) < frame_count:
+                frames.append(page)
+            else:
+                frames.pop(0)
+                frames.append(page)
+        else:
+            frames.remove(page)
+            frames.append(page)
+
+        print(f"Page: {page} -> Frames: {frames}")
+
+    return page_faults
+
+if __name__ == "__main__":
+    pages = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2, 1, 2, 0, 1, 7, 0, 1]
+    frame_count = 3
+
+    page_faults = lru_page_replacement(pages, frame_count)
+
+    print(f"\nTotal de fallos de página: {page_faults}")
+
+```
 
 ### Diseña un diagrama que represente el proceso de traducción de direcciones virtuales a físicas en un sistema con memoria virtual.
+### Flujo de Traducción de Direcciones Virtuales a Físicas
 
+```plaintext
+    +------------------------------+
+    | Inicio                       |
+    +------------------------------+
+             |
+             v
+    +------------------------------+
+    | CPU genera dirección virtual |
+    +------------------------------+
+             |
+             v
+    +------------------------------+
+    | Se consulta la tabla de      |
+    | páginas (Page Table)         |
+    +------------------------------+
+             |
+             v
+    +------------------------------+
+    | ¿La página está en la memoria|
+    | principal (RAM)?             |
+    +------------------------------+
+             |
+        +----+----+
+        |         |
+       Sí         No
+        |          |
+        v          v
++-----------------+  +---------------------+
+| Dirección       | | Cargar la página de  |
+| virtual         | | disco a la memoria   |
+| se traduce a    | | (swap in)            |
+| dirección       | +----------------------+
+| física en RAM   |           |
++-----------------+           v
+         |           +------------------------+
+         v           | Actualizar la tabla    |
++------------------+ | de páginas (Page Table)|
+| Dirección física | +------------------------+
+| generada y usada |
++------------------+
+         |
+         v
++------------------+
+| Fin              |
++------------------+
+```
 
 ## 3.5 Integración
 
@@ -159,8 +236,68 @@ Fin Para
   - Soporta memoria compartida entre procesos.
 
 ### Realiza una simulación en cualquier lenguaje de programación que emule el swapping de procesos en memoria virtual.
-```
-Hello world
+```py
+import random
+import time
+
+class SwapSimulation:
+    def __init__(self, memory_size, disk_size):
+        self.memory_size = memory_size
+        self.disk_size = disk_size
+        self.memory = []
+        self.disk = []
+        self.process_counter = 1
+
+    def allocate_process(self):
+        process_id = f"P{self.process_counter}"
+        self.process_counter += 1
+        
+        if len(self.memory) < self.memory_size:
+            self.memory.append(process_id)
+            print(f"Proceso {process_id} cargado en la memoria.")
+        else:
+            self.swap_out()
+            self.memory.append(process_id)
+            print(f"Proceso {process_id} cargado en la memoria tras swapping.")
+
+    def swap_out(self):
+        process_out = self.memory.pop(0)
+        self.disk.append(process_out)
+        print(f"Proceso {process_out} movido al disco para liberar espacio.")
+
+    def swap_in(self):
+        if self.disk:
+            process_in = self.disk.pop(0)
+            if len(self.memory) < self.memory_size:
+                self.memory.append(process_in)
+                print(f"Proceso {process_in} regresado a la memoria desde el disco.")
+            else:
+                print("No hay espacio suficiente en la memoria para swap-in.")
+        else:
+            print("No hay procesos para swap-in en el disco.")
+
+    def status(self):
+        print(f"\nEstado actual de la simulación:")
+        print(f"Memoria RAM: {self.memory}")
+        print(f"Disco: {self.disk}")
+        print("-" * 50)
+
+def main():
+    simulator = SwapSimulation(memory_size=3, disk_size=5)
+    
+    for _ in range(10):
+        simulator.allocate_process()
+        time.sleep(1)
+        simulator.status()
+    
+    for _ in range(3):
+        simulator.swap_in()
+        time.sleep(1)
+        simulator.status()
+
+if __name__ == "__main__":
+    main()
+
 ```
 
 ## 4.1 Dispositivos y Manejadores de Dispositivos
@@ -172,8 +309,63 @@ Hello world
   - **Ejemplo:** Teclado.
 
 ### Diseña un programa que implemente un manejador de dispositivos sencillo para un dispositivo virtual de entrada.
-```
-Hello world
+```py
+import queue
+
+class Device:
+    def __init__(self):
+        self.input_queue = queue.Queue()
+        self.is_active = False
+
+    def activate(self):
+        self.is_active = True
+        print("Dispositivo activado.")
+
+    def deactivate(self):
+        self.is_active = False
+        print("Dispositivo desactivado.")
+
+    def read_input(self):
+        if self.is_active and not self.input_queue.empty():
+            data = self.input_queue.get()
+            print(f"Datos leídos: {data}")
+        else:
+            print("No hay datos disponibles o dispositivo inactivo.")
+
+    def write_input(self, data):
+        if self.is_active:
+            self.input_queue.put(data)
+            print(f"Datos escritos en el dispositivo: {data}")
+        else:
+            print("Dispositivo inactivo, no se puede escribir.")
+
+class DeviceManager:
+    def __init__(self):
+        self.device = Device()
+
+    def handle_device(self, action, data=None):
+        if action == "activar":
+            self.device.activate()
+        elif action == "desactivar":
+            self.device.deactivate()
+        elif action == "leer":
+            self.device.read_input()
+        elif action == "escribir" and data is not None:
+            self.device.write_input(data)
+        else:
+            print("Acción no válida o falta de datos.")
+
+def main():
+    manager = DeviceManager()
+    manager.handle_device("activar")
+    manager.handle_device("escribir", "Entrada de datos 1")
+    manager.handle_device("escribir", "Entrada de datos 2")
+    manager.handle_device("leer")
+    manager.handle_device("desactivar")
+    manager.handle_device("leer")
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## 4.2 Mecanismos y Funciones de los Manejadores de Dispositivos
@@ -186,7 +378,61 @@ Hello world
   3. El manejador procesa la solicitud y reanuda el proceso interrumpido.
 
 ### Escribe un programa que utilice el manejo de interrupciones en un sistema básico de simulación.
+```py
+import random
+import time
 
+class Interrupt:
+    def __init__(self, id, handler):
+        self.id = id
+        self.handler = handler
+
+    def trigger(self):
+        self.handler(self.id)
+
+class System:
+    def __init__(self):
+        self.interrupts = []
+        self.is_running = False
+
+    def register_interrupt(self, interrupt):
+        self.interrupts.append(interrupt)
+
+    def trigger_interrupt(self):
+        interrupt = random.choice(self.interrupts)
+        print(f"Interrupción {interrupt.id} activada.")
+        interrupt.trigger()
+
+    def start(self):
+        self.is_running = True
+        while self.is_running:
+            time.sleep(random.uniform(1, 3))
+            self.trigger_interrupt()
+
+    def stop(self):
+        self.is_running = False
+        print("Sistema detenido.")
+
+def interrupt_handler_1(id):
+    print(f"Controlando la interrupción {id} en el sistema.")
+
+def interrupt_handler_2(id):
+    print(f"Procesando la interrupción {id} en el sistema.")
+
+def main():
+    system = System()
+    interrupt1 = Interrupt(1, interrupt_handler_1)
+    interrupt2 = Interrupt(2, interrupt_handler_2)
+
+    system.register_interrupt(interrupt1)
+    system.register_interrupt(interrupt2)
+
+    system.start()
+
+if __name__ == "__main__":
+    main()
+
+```
 
 ## 4.3 Estructuras de Datos para Manejo de Dispositivos
 
@@ -197,7 +443,7 @@ Hello world
   - Reduce el tiempo de espera de procesos prioritarios.
 
 ### Escribe un programa que simule las operaciones de un manejador de dispositivos utilizando una tabla de estructuras.
-```
+```c
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -288,9 +534,111 @@ int main() {
 
 ### Diseña un flujo que describa el proceso de lectura de un archivo desde un disco magnético. Acompáñalo con un programa básico que simule el proceso.
 
+Flujo de Lectura de un Archivo desde un Disco Magnético
+
+```plaintext
+    +------------------+
+    | Inicio           |
+    +------------------+
+            |
+            v
+    +------------------+
+    | Solicitud de     |
+    | lectura del      |
+    | archivo          |
+    +------------------+
+            |
+            v
+    +------------------+
+    | Localización del |
+    | archivo en el    |
+    | disco            |
+    +------------------+
+            |
+            v
+    +------------------+
+    | Acceso al disco  |
+    | (Controlador)    |
+    +------------------+
+            |
+            v
+    +------------------+
+    | Movimiento del   |
+    | cabezal de       |
+    | lectura/escritura|
+    +------------------+
+            |
+            v
+    +------------------+
+    | Lectura de los   |
+    | datos desde el   |
+    | disco            |
+    +------------------+
+            |
+            v
+    +------------------+
+    | Transferencia de |
+    | datos a la RAM   |
+    +------------------+
+            |
+            v
+    +------------------+
+    | Finalización     |
+    | de la lectura    |
+    +------------------+
+            |
+            v
+         +---------+
+         | Fin     |
+         +---------+
+```
+```py
+import time
+import random
+
+class DiscoMagnetico:
+    def __init__(self, tamaño_dispositivo):
+        self.tamaño = tamaño_dispositivo  # Número de bloques en el disco
+        self.datos = self.generar_datos()  # Datos simulados en el disco
+
+    def generar_datos(self):
+        """Simula la creación de datos en el disco."""
+        return [f'Dato{str(i)}' for i in range(self.tamaño)]
+
+    def leer(self, direccion, bloques):
+        """Simula la lectura de bloques desde el disco."""
+        print(f"Accediendo a la dirección {direccion}...")
+        time.sleep(random.uniform(0.5, 1))  # Simulación de tiempo de espera por el movimiento del cabezal
+        datos_leidos = self.datos[direccion: direccion + bloques]
+        return datos_leidos
+
+class Sistema:
+    def __init__(self, disco):
+        self.disco = disco  # El disco en el sistema
+
+    def leer_archivo(self, direccion, bloques):
+        """Simula el proceso de leer un archivo del disco"""
+        print("Comenzando la lectura del archivo...")
+        datos = self.disco.leer(direccion, bloques)
+        print("Lectura completada.")
+        return datos
+
+# Simulación
+if __name__ == "__main__":
+    disco = DiscoMagnetico(tamaño_dispositivo=100)
+    sistema = Sistema(disco)
+
+    direccion_archivo = 30  # Dirección de inicio donde el archivo comienza
+    bloques_archivo = 10  # Número de bloques a leer
+
+    print("Proceso de lectura iniciado...\n")
+    datos_archivo = sistema.leer_archivo(direccion_archivo, bloques_archivo)
+    print(f"Datos leídos: {datos_archivo}")
+
+```
 
 ### Implementa un programa en Python, C o java que realice operaciones de entrada/salida asíncronas usando archivos.
-```
+```py
 import asyncio
 import aiofiles
 
@@ -316,7 +664,7 @@ asyncio.run(main())
 
 ## 4.5 Integración
 ### Escribe un programa que implemente el algoritmo de planificación de discos "Elevator (SCAN)".
-```
+```c
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -407,7 +755,7 @@ int main() {
 ```
 
 ### Diseña un sistema que maneje múltiples dispositivos simulados (disco duro, impresora, teclado) y muestra cómo se realiza la comunicación entre ellos.
-```
+```c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
